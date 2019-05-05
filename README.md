@@ -1,7 +1,7 @@
 diagram.png
 ===
 
-![diagram](diagram.png =800x)
+![diagram](diagram.png)
 
 In the first column are five particular maps.
 
