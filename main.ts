@@ -23,6 +23,33 @@ function paths(e: Exp): string[] {
   return _paths(e, '');
 }
 
+function trim(c: string): string {
+  const items = c.split('/');
+  items.pop();
+  return items.join('/');
+}
+
+function _constraints(e: Exp, partial: string): { chere: string, clist: string[] } {
+  switch (e.t) {
+    case 'lam': {
+      const prev = _constraints(e.b, partial + 'B');
+      const chere = trim(prev.chere);
+      return { chere, clist: prev.clist.concat([chere]) };
+    }
+    case 'app': {
+      const prevF = _constraints(e.f, partial + 'F');
+      const prevA = _constraints(e.a, partial + 'A');
+      const chere = prevF.chere + '/' + prevA.chere;
+      return { chere, clist: prevF.clist.concat(prevA.clist, [chere]) };
+    }
+    case 'var': return { chere: partial, clist: [partial] };
+  }
+}
+
+function constraints(e: Exp): string[] {
+  return _constraints(e, '').clist;
+}
+
 function cartprod<T, U, V>(ts: T[], us: U[], k: (t: T, u: U) => V): V[] {
   const rv: V[] = [];
   ts.forEach(t => {
@@ -66,7 +93,7 @@ function terms(vars: number, apps: number, deep?: boolean): Exp[] {
   return cache[cacheKey];
 }
 
-for (let i = 0; i < 4; i++) {
+for (let i = 0; i < 3; i++) {
   //console.log(terms(0, i).length);
-  console.log(terms(0, i).map(x => [stringifyLam(x), paths(x)]));
+  console.log(terms(0, i).map(x => [stringifyLam(x), constraints(x)]));
 }
