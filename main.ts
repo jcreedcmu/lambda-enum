@@ -11,6 +11,21 @@ function stringifyLam(x: Exp): string {
   }
 }
 
+function paths(e: Exp): string[] {
+  switch (e.t) {
+    case 'lam': {
+      const prev = paths(e.b);
+      return prev.map(s => 'B' + s);
+    }
+    case 'app': {
+      const pf = paths(e.f);
+      const pa = paths(e.a);
+      return pf.map(s => 'F' + s).concat(pa.map(s => 'A' + s));
+    }
+    case 'var': return [''];
+  }
+}
+
 function cartprod<T, U, V>(ts: T[], us: U[], k: (t: T, u: U) => V): V[] {
   const rv: V[] = [];
   ts.forEach(t => {
@@ -23,10 +38,13 @@ function cartprod<T, U, V>(ts: T[], us: U[], k: (t: T, u: U) => V): V[] {
 
 const cache: { [k: string]: Exp[] } = {};
 
-function terms(vars: number, apps: number): Exp[] {
-  const cacheKey = `${vars}/${apps}`;
+function terms(vars: number, apps: number, deep?: boolean): Exp[] {
+  const cacheKey = `${vars}/${apps}/${deep}`;
   if (!cache[cacheKey]) {
     let rv: Exp[] = [];
+
+    if (deep && vars == 0) // forbid bridges
+      return [];
 
     if (vars > apps + 1)
       return [];
@@ -35,13 +53,13 @@ function terms(vars: number, apps: number): Exp[] {
       rv.push({ t: 'var' });
     }
 
-    rv = rv.concat(terms(vars + 1, apps).map(b => ({ t: 'lam', b })));
+    rv = rv.concat(terms(vars + 1, apps, true).map(b => ({ t: 'lam', b })));
 
     if (apps > 0) {
       for (let i = 0; i <= vars; i++) {
         for (let j = 0; j <= apps - 1; j++) {
-          const f = terms(i, j);
-          const a = terms(vars - i, apps - j - 1);
+          const f = terms(i, j, true);
+          const a = terms(vars - i, apps - j - 1, true);
           rv = rv.concat(cartprod(f, a, (f, a) => ({ t: 'app', f, a })));
         }
       }
@@ -51,7 +69,7 @@ function terms(vars: number, apps: number): Exp[] {
   return cache[cacheKey];
 }
 
-for (let i = 0; i < 7; i++) {
-  //  console.log(terms(0, 2 * i + 1, true).length);
-  console.log(terms(0, i).map(x => stringifyLam(x)).length);
+for (let i = 0; i < 4; i++) {
+  //console.log(terms(0, i).length);
+  console.log(terms(0, i).map(x => [stringifyLam(x), paths(x)]));
 }
