@@ -123,22 +123,24 @@ function terms(vars: number, apps: number, deep?: boolean): Exp[] {
 // Maximum size of lambda term to consider, measured in number of application nodes
 const N = 4;
 
-// All coloring constraints that arise from lambda terms
-const allConsts: { [k: string]: boolean } = {};
+// All coloring constraints that arise from lambda terms. The value in
+// the map is some arbitrary example term the constraint arose in.
+const allConsts: { [k: string]: string } = {};
+
 
 // Accumulate all the constraints we find
 for (let i = 0; i <= N; i++) {
-  terms(0, i).forEach(x => {
-    const c = constraints(x).forEach(cc => {
+  terms(0, i).forEach(e => {
+    const c = constraints(e).forEach(cc => {
       if (cc != '')
-        allConsts[cc] = true;
+        allConsts[cc] = stringify(e);
     });
   });
 }
 
-function z3OfConstraintList(cs: string[]): string {
+function z3OfConstraintList(cs: [string, string][]): string {
   let rv: string = '';
-  const singletons = cs.filter(x => !x.match(/\//));
+  const singletons = cs.map(x => x[0]).filter(x => !x.match(/\//));
   singletons.forEach(s => {
     // Each variable has to have a color
     rv += `(declare-const ${s} (_ BitVec 2))\n`;
@@ -146,11 +148,11 @@ function z3OfConstraintList(cs: string[]): string {
 
   cs.forEach(c => {
     // Each constraint must be satisfied
-    rv += `(assert (not (= #b00 (bvxor ${c.split('/').join(' ')}))))\n`;
+    rv += `(assert (not (= #b00 (bvxor ${c[0].split('/').join(' ')})))) ; ${c[1]}\n`;
   })
   rv += '(check-sat)\n';
   rv += '(get-model)\n';
   return rv;
 }
 
-process.stdout.write(z3OfConstraintList(Object.keys(allConsts)));
+process.stdout.write(z3OfConstraintList(Object.entries(allConsts)));
