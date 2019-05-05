@@ -8,25 +8,12 @@ type Exp =
 function stringify(x: Exp): string {
   switch (x.t) {
     case 'lam': return '/' + stringify(x.b);
-    case 'app': return '@' + stringify(x.f) + stringify(x.a);
+    case 'app': return '(' + stringify(x.f) + ' ' + stringify(x.a) + ')';
     case 'var': return '*';
   }
 }
 
-// Given an expression `e`, and given that the path to the expression
-// we're looking at is `partial`, return all paths to variables.
-function _paths(e: Exp, partial: string): string[] {
-  switch (e.t) {
-    case 'lam': return _paths(e.b, partial + 'B');
-    case 'app': return _paths(e.f, partial + 'F').concat(_paths(e.a, partial + 'A'));
-    case 'var': return [partial];
-  }
-}
 
-// Return all paths to variables in `e`.
-function paths(e: Exp): string[] {
-  return _paths(e, '');
-}
 
 /////////////////////////////////
 //// Constraint Computations ////
@@ -51,6 +38,19 @@ type ConstraintResult = {
   clist: string[] // the constraints arising from all subexpressions
 };
 
+// return a path that traverses into and out of e
+function fullTraverse(e: Exp): string {
+  switch (e.t) {
+    case 'lam': return fullTraverseThru(e.b, 'B');
+    case 'app': return fullTraverseThru(e.f, 'F') + fullTraverseThru(e.a, 'A');
+    case 'var': return '';
+  }
+}
+// return a path that traverses through all of e, starting with d
+function fullTraverseThru(e: Exp, d: 'B' | 'F' | 'A'): string {
+  return d + fullTraverse(e) + 'U';
+}
+
 // Return all constraints arising from expression `e`, assuming
 // `partial` is the path we took to arrive at `e`.
 function _constraints(e: Exp, partial: string): ConstraintResult {
@@ -61,8 +61,9 @@ function _constraints(e: Exp, partial: string): ConstraintResult {
       return { chere, clist: prev.clist.concat([chere]) };
     }
     case 'app': {
+      const ft = fullTraverseThru(e.f, 'F');
       const prevF = _constraints(e.f, partial + 'F');
-      const prevA = _constraints(e.a, partial + 'A');
+      const prevA = _constraints(e.a, partial + ft + 'A');
       const chere = prevF.chere + '/' + prevA.chere;
       return { chere, clist: prevF.clist.concat(prevA.clist, [chere]) };
     }
@@ -121,7 +122,19 @@ function terms(vars: number, apps: number, deep?: boolean): Exp[] {
 }
 
 // Maximum size of lambda term to consider, measured in number of application nodes
-const N = 4;
+const N = 5;
+
+const DEBUG = false;
+if (DEBUG) {
+  for (let i = 0; i <= N; i++) {
+
+    terms(0, i).forEach(e => {
+      console.log(stringify(e));
+      console.log(constraints(e));
+    });
+  }
+  process.exit(0);
+}
 
 // All coloring constraints that arise from lambda terms. The value in
 // the map is some arbitrary example term the constraint arose in.
