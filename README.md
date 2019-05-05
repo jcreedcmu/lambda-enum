@@ -1,6 +1,8 @@
 diagram.png
 ===
 
+![diagram](diagram.png =800x)
+
 In the first column are five particular maps.
 
 In the second column are those same maps, with certain selected subterm edges indicated with red underline, labelled by the set of free variables in them. The unsatisfiable task is: globally choose a color for all paths, such that all of these red-underlined edges obtain a valid color. (i.e. the klein-4-group sum of the colors of their free variables is not the identity element of that group)
