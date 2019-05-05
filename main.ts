@@ -11,19 +11,16 @@ function stringifyLam(x: Exp): string {
   }
 }
 
-function paths(e: Exp): string[] {
+function _paths(e: Exp, partial: string): string[] {
   switch (e.t) {
-    case 'lam': {
-      const prev = paths(e.b);
-      return prev.map(s => 'B' + s);
-    }
-    case 'app': {
-      const pf = paths(e.f);
-      const pa = paths(e.a);
-      return pf.map(s => 'F' + s).concat(pa.map(s => 'A' + s));
-    }
-    case 'var': return [''];
+    case 'lam': return _paths(e.b, partial + 'B');
+    case 'app': return _paths(e.f, partial + 'F').concat(_paths(e.a, partial + 'A'));
+    case 'var': return [partial];
   }
+}
+
+function paths(e: Exp): string[] {
+  return _paths(e, '');
 }
 
 function cartprod<T, U, V>(ts: T[], us: U[], k: (t: T, u: U) => V): V[] {
