@@ -1,5 +1,7 @@
+
+
 // A lambda expression
-type Exp =
+export type Exp =
   | { t: 'lam', b: Exp }
   | { t: 'app', f: Exp, a: Exp }
   | { t: 'var' };
