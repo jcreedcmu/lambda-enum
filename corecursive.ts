@@ -1,11 +1,4 @@
-
-
-type Color = 0 | 1 | 2;
-type Coloring = Color[];
-
-function opp(x: 1 | 2): 1 | 2 {
-  return x == 1 ? 2 : 1;
-}
+import { Color, Coloring, opp } from './common';
 
 function transpose(x: 1 | 2, y: Color): Color {
   if (y == x)
@@ -88,7 +81,7 @@ function parseKey(s: string): Coloring[] {
 // state.rows[0][makeKey([[2, 1, 0], [0, 1, 2]])] = true;
 // console.log(state);
 
-function iter(s: State): State {
+function iter1(s: State, N: number): State {
   const rv = emptyState(N);
   for (let i = 0; i < N; i++) {
     Object.keys(s.rows[i]).forEach(k => {
@@ -124,16 +117,57 @@ function iter(s: State): State {
   return rv;
 }
 
-const N = 6;
-
-let state = emptyState(N);
-state.rows[0][makeKey([[0]])] = true;
-
-while (1) {
-  const old = state.total;
-  state = iter(state);
-  if (state.total == old) break;
+function uniq(x: string[]): string[] {
+  const map: { [k: string]: boolean } = {};
+  x.forEach(t => map[t] = true);
+  const rv = Object.keys(map);
+  rv.sort();
+  return rv;
 }
 
-console.log('total', state.total);
-console.log('counts', state.counts);
+function experiment1() {
+  const N = 6;
+
+  let state = emptyState(N);
+  state.rows[0][makeKey([[0]])] = true;
+
+  while (1) {
+    const old = state.total;
+    state = iter1(state, N);
+    if (state.total == old) break;
+  }
+
+  console.log('total', state.total);
+  console.log('counts', state.counts);
+}
+
+function iter2(cc: Coloring[]): Coloring[] {
+  let rv: Coloring[] = [];
+  cc.forEach(c => {
+    const more = applyApp(c, [0]);
+    rv = rv.concat(more);
+  });
+  return rv;
+}
+
+function flip(x: string): string {
+  let cs = x.split('');
+  cs.reverse();
+  cs = cs.map(x => x == '2' ? '1' : x == '1' ? '2' : '0');
+  return cs.join('');
+}
+
+function experiment2() {
+  for (let N = 0; N < 18; N++) {
+    let cc: Coloring[] = [[0]];
+    for (let i = 0; i < N; i++)
+      cc = iter2(cc);
+    cc = applyLamMany(cc);
+    let s = uniq(cc.map(c => c.join('')));
+    s = s.filter(c => c != flip(c));
+    console.log(s.length);
+    if (s.length <= 36) console.log(s);
+  }
+}
+
+experiment2();
